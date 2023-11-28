@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # E-ARK Validation
-# Copyright (C) 2023
+# Copyright (C) 2019
 # All rights reserved.
 #
 # Licensed to the E-ARK project under one
@@ -23,9 +23,6 @@
 # under the License.
 #
 """
-E-ARK : Python information package validation
-
+E-ARK : Information package validation
+        CLI
 """
-
-__version__ = '0.1.0'
-__title__ = "eark_validator"

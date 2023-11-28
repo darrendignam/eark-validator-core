@@ -23,9 +23,6 @@
 # under the License.
 #
 """
-E-ARK : Python information package validation
+E-ARK : Python eark validator
 
 """
-
-__version__ = '0.1.0'
-__title__ = "eark_validator"
