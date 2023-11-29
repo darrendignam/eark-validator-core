@@ -1,11 +1,11 @@
-from eark_validator import __version__
 import os.path
 import json
+import hashlib
 # import zipfile
 # import tarfile
 import click
-import hashlib
 
+from eark_validator import __version__
 from eark_validator.infopacks.mets import MetsValidator
 from eark_validator.infopacks.rules import ValidationProfile
 import eark_validator.infopacks.information_package as IP
@@ -47,16 +47,23 @@ It is designed for simple integration into automated work-flows."""
                     metadata_file.write(f"File size: {os.path.getsize(file)} bytes\n")
 
                     # perform the validation
-                    # struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
-                    results_names = ["struct_details", "schema_result", "schema_errors", "prof_names", "schematron_result", "prof_results"]
-                    results_data = validate(file)
-                    for i, s in enumerate(results_names):
-                        resultfilename = f"{s}.txt"
-                        for k, v in vars(results_data[i]).items():
-                            # write_dict_to_file(results_data[i], os.path.join(tmp_folder_name, resultfilename))
-                            # f = open(os.path.join( os.path.join(tmp_folder_name, resultfilename), 'w')
-                            f = open(os.path.join(tmp_folder_name, resultfilename), 'w')
-                            f.write(f"{k}: {v}\n")
+                    struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
+                    write_dict_to_file(dir(struct_details.errors), os.path.join(tmp_folder_name, 'struct_details.txt'))
+                    write_dict_to_file(schema_result, os.path.join(tmp_folder_name, 'schema_result.txt'))
+                    write_dict_to_file(schema_errors, os.path.join(tmp_folder_name, 'schema_errors.txt'))
+                    write_dict_to_file(prof_names, os.path.join(tmp_folder_name, 'prof_names.txt'))
+                    write_dict_to_file(schematron_result, os.path.join(tmp_folder_name, 'schematron_result.txt'))
+                    write_dict_to_file(dir(prof_results), os.path.join(tmp_folder_name, 'prof_results.txt'))
+
+
+                    # results_names = ["struct_details", "schema_result", "schema_errors", "prof_names", "schematron_result", "prof_results"]
+                    # results_data = validate(file)
+                    # for i, s in enumerate(results_names):
+                    #     resultfilename = f"{s}.txt"
+                    #     for k, v in vars(results_data[i]).items():
+                    #         # write_dict_to_file(results_data[i], os.path.join(tmp_folder_name, resultfilename))
+                    #         f = open(os.path.join(tmp_folder_name, resultfilename), 'w')
+                    #         f.write(f"{k}: {v}\n")
 
                                         
                 else:
@@ -71,8 +78,11 @@ def create_directory(directory_path):
         pass
 
 def write_dict_to_file(d: dict, file_path: str):
-    with open(file_path, "w") as f:
-        json.dump(d, f)
+    try:
+        with open(file_path, "w") as f:
+            json.dump(d, f)
+    except:
+         click.echo(f"Error: {file_path}")
 
 def validate(to_validate):
     struct_details = IP.validate_package_structure(to_validate)
