@@ -51,26 +51,7 @@ It is designed for simple integration into automated work-flows."""
                     write_data_to_file(format_struct(struct_details), os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.txt'))
                     write_data_to_file(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.txt'))
                     write_data_to_file(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.txt'))
-
-
-
-
-                    # write_data_to_file(schematron_result, os.path.join(tmp_folder_name, 'schematron_result.txt'))
-
-                    # write_data_to_file(prof_names, os.path.join(tmp_folder_name, 'prof_names.txt'))
-                    # write_data_to_file(prof_results, os.path.join(tmp_folder_name, 'prof_results.txt'))
-                    # write_data_to_file(schema_errors, os.path.join(tmp_folder_name, 'schema_errors.txt'))
-
-                    # results_names = ["struct_details", "schema_result", "schema_errors", "prof_names", "schematron_result", "prof_results"]
-                    # results_data = validate(file)
-                    # for i, s in enumerate(results_names):
-                    #     resultfilename = f"{s}.txt"
-                    #     for k, v in vars(results_data[i]).items():
-                    #         # write_dict_to_file(results_data[i], os.path.join(tmp_folder_name, resultfilename))
-                    #         f = open(os.path.join(tmp_folder_name, resultfilename), 'w')
-                    #         f.write(f"{k}: {v}\n")
-
-                                        
+                
                 else:
                     click.echo(f"{file} has an invalid extension.")
             else:
