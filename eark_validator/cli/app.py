@@ -1,7 +1,7 @@
 from eark_validator import __version__
 import os.path
-import zipfile
-import tarfile
+# import zipfile
+# import tarfile
 import click
 import hashlib
 

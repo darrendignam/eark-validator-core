@@ -29,10 +29,10 @@ import tarfile
 import tempfile
 import zipfile
 
-from ip_validation.infopacks.struct_errors import StructError
-from ip_validation.infopacks.rules import Severity
+from eark_validator.infopacks.struct_errors import StructError
+from eark_validator.infopacks.rules import Severity
 
-import ip_validation.utils as UTILS
+import eark_validator.utils as UTILS
 
 @unique
 class StructureStatus(Enum):
