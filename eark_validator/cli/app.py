@@ -5,6 +5,7 @@ import os.path
 import click
 import hashlib
 
+from eark_validator.infopacks.mets import MetsValidator
 from eark_validator.infopacks.rules import ValidationProfile
 import eark_validator.infopacks.information_package as IP
 import eark_validator.utils as UTILS
@@ -34,15 +35,43 @@ It is designed for simple integration into automated work-flows."""
                 if extension in ALLOWED_EXTENSIONS:
                     with open(file, 'rb') as f:
                         md5_hash = hashlib.md5(f.read()).hexdigest()
-                        sha1_hash = hashlib.sha1(f.read()).hexdigest()
-                    click.echo(f"{file} is a valid file with extension {extension} and MD5: {sha1_hash} checksum.")
+                        # sha1_hash = hashlib.sha1(f.read()).hexdigest()
+                        sha1_hash = UTILS.sha1(file)
+                    click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
                     click.echo("Working...")
+                    tmp_folder_name = sha1_hash
+                    os.mkdir(tmp_folder_name)
+                    metadata_file = open(os.path.join(tmp_folder_name, 'metadata.txt'), 'w')
+                    metadata_file.write(f"File name: {os.path.basename(file)}\n")
+                    metadata_file.write(f"File size: {os.path.getsize(file)} bytes\n")
+
+                                        
                 else:
                     click.echo(f"{file} has an invalid extension.")
             else:
                 click.echo(f"{file} is not a valid file.")
 
 
+def validate(to_validate):
+    struct_details = IP.validate_package_structure(to_validate)
+    # Schema and schematron validation to be factored out.
+    # initialise schema and schematron validation structures
+    schema_result = None
+    prof_results = {}
+    schema_errors = []
+    # Schematron validation profile
+    profile = ValidationProfile()
+    # IF package is well formed then we can validate it.
+    if struct_details.structure_status == IP.StructureStatus.WellFormed:
+        # Schema based METS validation first
+        validator = MetsValidator(struct_details.path)
+        mets_path = os.path.join(struct_details.path, 'METS.xml')
+        schema_result = validator.validate_mets(mets_path)
+        # Now grab any errors
+        schema_errors = validator.validation_errors
+        if schema_result is True:
+            profile.validate(mets_path)
+            prof_results = profile.get_results()
 
 
 def main():
