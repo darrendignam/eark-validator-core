@@ -1,5 +1,6 @@
 from eark_validator import __version__
 import os.path
+import json
 # import zipfile
 # import tarfile
 import click
@@ -40,10 +41,22 @@ It is designed for simple integration into automated work-flows."""
                     click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
                     click.echo("Working...")
                     tmp_folder_name = sha1_hash
-                    os.mkdir(tmp_folder_name)
+                    create_directory(tmp_folder_name)
                     metadata_file = open(os.path.join(tmp_folder_name, 'metadata.txt'), 'w')
                     metadata_file.write(f"File name: {os.path.basename(file)}\n")
                     metadata_file.write(f"File size: {os.path.getsize(file)} bytes\n")
+
+                    # perform the validation
+                    # struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
+                    results_names = ["struct_details", "schema_result", "schema_errors", "prof_names", "schematron_result", "prof_results"]
+                    results_data = validate(file)
+                    for i, s in enumerate(results_names):
+                        resultfilename = f"{s}.txt"
+                        for k, v in vars(results_data[i]).items():
+                            # write_dict_to_file(results_data[i], os.path.join(tmp_folder_name, resultfilename))
+                            # f = open(os.path.join( os.path.join(tmp_folder_name, resultfilename), 'w')
+                            f = open(os.path.join(tmp_folder_name, resultfilename), 'w')
+                            f.write(f"{k}: {v}\n")
 
                                         
                 else:
@@ -51,6 +64,15 @@ It is designed for simple integration into automated work-flows."""
             else:
                 click.echo(f"{file} is not a valid file.")
 
+def create_directory(directory_path):
+    try:
+        os.makedirs(directory_path)
+    except FileExistsError:
+        pass
+
+def write_dict_to_file(d: dict, file_path: str):
+    with open(file_path, "w") as f:
+        json.dump(d, f)
 
 def validate(to_validate):
     struct_details = IP.validate_package_structure(to_validate)
@@ -72,6 +94,10 @@ def validate(to_validate):
         if schema_result is True:
             profile.validate(mets_path)
             prof_results = profile.get_results()
+
+    prof_names=ValidationProfile.NAMES
+    schematron_result=profile.is_valid
+    return struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results
 
 
 def main():
