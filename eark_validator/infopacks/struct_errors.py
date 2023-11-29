@@ -23,7 +23,7 @@
 # under the License.
 #
 """Simple definition of package structure errors."""
-from ip_validation.infopacks.rules import Severity
+from eark_validator.infopacks.rules import Severity
 
 STRUCT_ERRORS = {
     1: """Any Information Package MUST be included within a single physical root
