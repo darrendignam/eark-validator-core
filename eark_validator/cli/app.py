@@ -48,13 +48,18 @@ It is designed for simple integration into automated work-flows."""
 
                     # perform the validation
                     struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
-                    write_dict_to_file(dir(struct_details.errors), os.path.join(tmp_folder_name, 'struct_details.txt'))
-                    write_dict_to_file(schema_result, os.path.join(tmp_folder_name, 'schema_result.txt'))
-                    write_dict_to_file(schema_errors, os.path.join(tmp_folder_name, 'schema_errors.txt'))
-                    write_dict_to_file(prof_names, os.path.join(tmp_folder_name, 'prof_names.txt'))
-                    write_dict_to_file(schematron_result, os.path.join(tmp_folder_name, 'schematron_result.txt'))
-                    write_dict_to_file(dir(prof_results), os.path.join(tmp_folder_name, 'prof_results.txt'))
+                    write_data_to_file(format_struct(struct_details), os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.txt'))
+                    write_data_to_file(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.txt'))
+                    write_data_to_file(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.txt'))
 
+
+
+
+                    # write_data_to_file(schematron_result, os.path.join(tmp_folder_name, 'schematron_result.txt'))
+
+                    # write_data_to_file(prof_names, os.path.join(tmp_folder_name, 'prof_names.txt'))
+                    # write_data_to_file(prof_results, os.path.join(tmp_folder_name, 'prof_results.txt'))
+                    # write_data_to_file(schema_errors, os.path.join(tmp_folder_name, 'schema_errors.txt'))
 
                     # results_names = ["struct_details", "schema_result", "schema_errors", "prof_names", "schematron_result", "prof_results"]
                     # results_data = validate(file)
@@ -71,6 +76,31 @@ It is designed for simple integration into automated work-flows."""
             else:
                 click.echo(f"{file} is not a valid file.")
 
+
+def format_struct(struct: IP.PackageDetails):
+    result_dict = {}
+    result_dict["errors"] = []
+    for error in struct.errors:
+        result_dict["errors"].append({"severity": error.severity.name, "message": error.message, "sub_message": error.sub_message, "rule": f"https://earkcsip.dilcis.eu/#{ error.rule_id }" }) 
+    return result_dict
+
+def format_profile_results(names, results):
+    result_dict = { "root": {"title": "METS Root", "is_valid": results["root"].is_valid},
+                    "hdr": {"title": "METS Header", "is_valid": results["hdr"].is_valid},
+                    "amd": {"title": "Adminstrative Metadata", "is_valid": results["amd"].is_valid},
+                    "file": {"title": "File Section", "is_valid": results["file"].is_valid},
+                    "structmap": {"title": "Structural Map", "is_valid": results["structmap"].is_valid}  }
+
+    return result_dict
+
+def format_schema_results(schema_results):
+    result_dict = []
+    for error in schema_results:
+        result_dict.append({ "error": error.msg })
+    return result_dict
+
+
+
 def create_directory(directory_path):
     try:
         os.makedirs(directory_path)
@@ -83,6 +113,19 @@ def write_dict_to_file(d: dict, file_path: str):
             json.dump(d, f)
     except:
          click.echo(f"Error: {file_path}")
+
+def write_data_to_file(data, file_path):
+    with open(file_path, "w") as f:
+        if isinstance(data, list):
+            for item in data:
+                f.write(json.dumps(item) + "\n")
+        elif isinstance(data, dict):
+            f.write(json.dumps(data) + "\n")
+        elif isinstance(data, set):
+            for item in data:
+                f.write(json.dumps(item) + "\n")
+        else:
+            raise ValueError(f"Data must be a list, dictionary, or set {file_path}")
 
 def validate(to_validate):
     struct_details = IP.validate_package_structure(to_validate)
