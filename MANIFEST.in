@@ -1,0 +1,2 @@
+include eark_validator/infopacks/resources/schematron/*.xml
+include eark_validator/infopacks/resources/schemas/*.xsd
