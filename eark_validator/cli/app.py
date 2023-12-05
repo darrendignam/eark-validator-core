@@ -1,5 +1,6 @@
 import os.path
-import json
+import json as jsonformatter
+import dicttoxml
 import hashlib
 # import zipfile
 # import tarfile
@@ -15,13 +16,16 @@ ALLOWED_EXTENSIONS = {'zip', 'tar', 'gz', 'gzip'}
 
 @click.command()
 @click.version_option(__version__)
-@click.option("--recursive", "-r", default=True, help="When analysing an information package recurse into representations.")
-@click.option("--checksum", "-c", default=False, help="Calculate and verify file checksums in packages.")
-@click.option("--verbose", "-v", default=False, help="Report results in verbose format")
+# @click.option("--recursive", "-r", default=True, help="When analysing an information package recurse into representations.")
+# @click.option("--checksum", "-c", default=False, help="Calculate and verify file checksums in packages.")
+# @click.option("--verbose", "-v", default=False, help="Report results in verbose format")
+@click.option("--json", default=True, help="Report results in JSON format")
+@click.option("--xml", default=False, help="Report results in XML format")
+@click.option("--hardcopy", default=False, help="Report results as files on the filesystem")
 @click.argument('files', nargs=-1)
 # @click.argument('file', type=click.Path(exists=True))
 @click.pass_context
-def cli(ctx, recursive, checksum, verbose, files):
+def cli(ctx, json, xml, hardcopy, files):
     """E-ARK Information Package validation (ip-check).
 ip-check is a command-line tool to analyse and validate the structure and
 metadata against the E-ARK Information Package specifications.
@@ -47,23 +51,30 @@ It is designed for simple integration into automated work-flows."""
                     metadata_file.write(f"File size: {os.path.getsize(file)} bytes\n")
 
                     # perform the validation
-                    struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
-                    write_data_to_file(format_struct(struct_details), os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.txt'))
-                    write_data_to_file(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.txt'))
-                    write_data_to_file(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.txt'))
+                    struct_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
+                    
+                    # Process Results
+
+                    if xml:
+                        click.echo( dicttoxml.dicttoxml(struct_dict, return_bytes=False) )
+                    elif json:
+                        click.echo( jsonformatter.dumps(struct_dict) )
+
+                    if hardcopy:
+                        # Write result data to disk
+                        write_data_to_file_json(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.json'))
+                        write_data_to_file_json(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.json'))
+                        write_data_to_file_json(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.json'))
+                    
+                        write_data_to_file_xml(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.xml'))
+                        write_data_to_file_xml(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.xml'))
+                        write_data_to_file_xml(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.xml'))
                 
                 else:
                     click.echo(f"{file} has an invalid extension.")
             else:
                 click.echo(f"{file} is not a valid file.")
 
-
-def format_struct(struct: IP.PackageDetails):
-    result_dict = {}
-    result_dict["errors"] = []
-    for error in struct.errors:
-        result_dict["errors"].append({"severity": error.severity.name, "message": error.message, "sub_message": error.sub_message, "rule": f"https://earkcsip.dilcis.eu/#{ error.rule_id }" }) 
-    return result_dict
 
 def format_profile_results(names, results):
     result_dict = { "root": {"title": "METS Root", "is_valid": results["root"].is_valid},
@@ -91,25 +102,29 @@ def create_directory(directory_path):
 def write_dict_to_file(d: dict, file_path: str):
     try:
         with open(file_path, "w") as f:
-            json.dump(d, f)
+            jsonformatter.dump(d, f)
     except:
          click.echo(f"Error: {file_path}")
 
-def write_data_to_file(data, file_path):
+def write_data_to_file_json(data, file_path):
     with open(file_path, "w") as f:
         if isinstance(data, list):
             for item in data:
-                f.write(json.dumps(item) + "\n")
+                f.write(jsonformatter.dumps(item) + "\n")
         elif isinstance(data, dict):
-            f.write(json.dumps(data) + "\n")
+            f.write(jsonformatter.dumps(data) + "\n")
         elif isinstance(data, set):
             for item in data:
-                f.write(json.dumps(item) + "\n")
+                f.write(jsonformatter.dumps(item) + "\n")
         else:
             raise ValueError(f"Data must be a list, dictionary, or set {file_path}")
+        
+def write_data_to_file_xml(data, file_path):
+    with open(file_path, "w") as f:
+        f.write(dicttoxml.dicttoxml(data, return_bytes=False))
 
 def validate(to_validate):
-    struct_details = IP.validate_package_structure(to_validate)
+    struct_dict, struct_details = IP.validate_package_structure_dict(to_validate)
     # Schema and schematron validation to be factored out.
     # initialise schema and schematron validation structures
     schema_result = None
@@ -131,7 +146,7 @@ def validate(to_validate):
 
     prof_names=ValidationProfile.NAMES
     schematron_result=profile.is_valid
-    return struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results
+    return struct_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results
 
 
 def main():
