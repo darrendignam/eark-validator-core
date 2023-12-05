@@ -209,14 +209,17 @@ def validate_package_structure_dict(package_path):
     struct = validate_package_structure(package_path)
     result = {}
     result["status"] = struct.structure_status.name
+    result["name"] = struct.name
+    result["path"] = package_path
+
     result["errors"] = []    
     for error in struct.errors:
         result["errors"].append({"severity": error.severity.name, "message": error.message, "sub_message": error.sub_message, "rule": f"https://earkcsip.dilcis.eu/#{ error.rule_id }" })         
-    return result
+    return result, struct
 
 def validate_package_structure_json(package_path):
     """Returns a JSON string."""    
-    result = validate_package_structure_dict(package_path)
+    result = validate_package_structure_dict(package_path)[0]
     return json.dumps(result)
 
 def validate_package_structure_xml(package_path, root = True, custom_root = 'root', attr_type = True, cdata = False):
@@ -231,7 +234,7 @@ def validate_package_structure_xml(package_path, root = True, custom_root = 'roo
     - cdata specifies whether string values should be wrapped in CDATA sections.
       Default is False
     """    
-    result = validate_package_structure_dict(package_path)
+    result = validate_package_structure_dict(package_path)[0]
     return dicttoxml.dicttoxml(result, root = root, custom_root = custom_root, attr_type = attr_type, cdata = cdata, return_bytes=False)
 
 def validate_manifest(manifest, is_root=True):
