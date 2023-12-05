@@ -24,6 +24,8 @@
 #
 """Module covering information package structure validation and navigation."""
 from enum import Enum, unique
+import json
+import dicttoxml
 import os
 import tarfile
 import tempfile
@@ -201,6 +203,36 @@ def validate_package_structure(package_path):
     if details.structure_status == StructureStatus.Unknown:
         details.structure_status = StructureStatus.WellFormed
     return details
+
+def validate_package_structure_dict(package_path):
+    """Returns the structural test results in a Python dictionary."""  
+    struct = validate_package_structure(package_path)
+    result = {}
+    result["status"] = struct.structure_status.name
+    result["errors"] = []    
+    for error in struct.errors:
+        result["errors"].append({"severity": error.severity.name, "message": error.message, "sub_message": error.sub_message, "rule": f"https://earkcsip.dilcis.eu/#{ error.rule_id }" })         
+    return result
+
+def validate_package_structure_json(package_path):
+    """Returns a JSON string."""    
+    result = validate_package_structure_dict(package_path)
+    return json.dumps(result)
+
+def validate_package_structure_xml(package_path, root = True, custom_root = 'root', attr_type = True, cdata = False):
+    """Returns an XML string.
+    Arguments:
+    - root specifies whether the output is wrapped in an XML root element
+      Default is True
+    - custom_root allows you to specify a custom root element.
+      Default is 'root'
+    - attr_type specifies whether elements get a data type attribute.
+      Default is True
+    - cdata specifies whether string values should be wrapped in CDATA sections.
+      Default is False
+    """    
+    result = validate_package_structure_dict(package_path)
+    return dicttoxml.dicttoxml(result, root = root, custom_root = custom_root, attr_type = attr_type, cdata = cdata, return_bytes=False)
 
 def validate_manifest(manifest, is_root=True):
     """Validate a manifest report and return the list of validation errors."""
