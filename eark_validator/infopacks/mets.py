@@ -25,6 +25,8 @@
 """METS Schema validation."""
 import fnmatch
 import os
+import json
+import dicttoxml
 
 from lxml import etree
 
@@ -95,6 +97,19 @@ class MetsValidator():
             self.validation_errors.append('File count yielded %d instead of 0.' % self.total_files)
 
         return len(self.validation_errors) == 0
+
+    def get_results_dict(self):
+        """Return the full set of results in a formatted dictionary."""
+        result = {"is_valid":len(self.validation_errors) == 0, "errors":self.validation_errors}
+        return result
+
+    def get_results_json(self):
+        """Return the full set of results in a formatted JSON string."""
+        return json.dumps( self.get_results_dict() )
+
+    def get_results_xml(self, root = True, custom_root = 'root', attr_type = True, cdata = False):
+        """Return the full set of results in a formatted XML string."""
+        return dicttoxml.dicttoxml(self.get_results_dict(), root = root, custom_root = custom_root, attr_type = attr_type, cdata = cdata, return_bytes=False)
 
 def _handle_rel_paths(rootpath, metspath):
     if metspath.startswith('file://./'):
