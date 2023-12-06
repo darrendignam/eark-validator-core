@@ -38,22 +38,22 @@ It is designed for simple integration into automated work-flows."""
             if os.path.isfile(file):
                 extension = os.path.splitext(file)[-1][1:].lower()
                 if extension in ALLOWED_EXTENSIONS:
-                    with open(file, 'rb') as f:
-                        md5_hash = hashlib.md5(f.read()).hexdigest()
-                        # sha1_hash = hashlib.sha1(f.read()).hexdigest()
-                        sha1_hash = UTILS.sha1(file)
-                    click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
-                    click.echo("Working...")
-                    tmp_folder_name = sha1_hash
-                    create_directory(tmp_folder_name)
-                    metadata_file = open(os.path.join(tmp_folder_name, 'metadata.txt'), 'w')
-                    metadata_file.write(f"File name: {os.path.basename(file)}\n")
-                    metadata_file.write(f"File size: {os.path.getsize(file)} bytes\n")
+                    # Create basic metadata
+                    filename = os.path.basename(file)
+                    filepath = os.path.dirname(file)
+                    filesize = os.path.getsize(file)
+                    sha1_hash = UTILS.sha1(file)
+
+                    validation_result = {}
+                    validation_result["metadata"] = { "filename":filename, "filepath":filepath, "filesize":filesize, "sha1":sha1_hash }
 
                     # perform the validation
-                    struct_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
+                    struct_dict, prof_results_dict, mets_results_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
                     
                     # Process Results
+                    validation_result["structure"] = struct_dict
+                    validation_result["profile"] = prof_results_dict
+                    validation_result["mets"] = mets_results_dict
 
                     if xml:
                         click.echo( dicttoxml.dicttoxml(struct_dict, return_bytes=False) )
@@ -61,29 +61,30 @@ It is designed for simple integration into automated work-flows."""
                         click.echo( jsonformatter.dumps(struct_dict) )
 
                     if hardcopy:
+                        # with open(file, 'rb') as f:
+                        #     sha1_hash = UTILS.sha1(file)
+                        click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
+                        click.echo("Working...")
+                        tmp_folder_name = sha1_hash
+                        create_directory(tmp_folder_name)
+                        metadata_file = open(os.path.join(tmp_folder_name, 'metadata.txt'), 'w')
+                        metadata_file.write(f"File name: {filename}\n")
+                        metadata_file.write(f"File path: {filepath} bytes\n")  
+                        metadata_file.write(f"File size: {filesize} bytes\n")                        
+
                         # Write result data to disk
                         write_data_to_file_json(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.json'))
-                        write_data_to_file_json(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.json'))
+                        write_data_to_file_json(prof_results_dict, os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.json'))
                         write_data_to_file_json(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.json'))
                     
                         write_data_to_file_xml(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.xml'))
-                        write_data_to_file_xml(format_profile_results(prof_names,prof_results), os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.xml'))
+                        write_data_to_file_xml(prof_results_dict, os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.xml'))
                         write_data_to_file_xml(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.xml'))
                 
                 else:
                     click.echo(f"{file} has an invalid extension.")
             else:
                 click.echo(f"{file} is not a valid file.")
-
-
-def format_profile_results(names, results):
-    result_dict = { "root": {"title": "METS Root", "is_valid": results["root"].is_valid},
-                    "hdr": {"title": "METS Header", "is_valid": results["hdr"].is_valid},
-                    "amd": {"title": "Adminstrative Metadata", "is_valid": results["amd"].is_valid},
-                    "file": {"title": "File Section", "is_valid": results["file"].is_valid},
-                    "structmap": {"title": "Structural Map", "is_valid": results["structmap"].is_valid}  }
-
-    return result_dict
 
 def format_schema_results(schema_results):
     result_dict = []
@@ -129,6 +130,7 @@ def validate(to_validate):
     # initialise schema and schematron validation structures
     schema_result = None
     prof_results = {}
+    prof_results_dict = {}
     schema_errors = []
     # Schematron validation profile
     profile = ValidationProfile()
@@ -138,15 +140,17 @@ def validate(to_validate):
         validator = MetsValidator(struct_details.path)
         mets_path = os.path.join(struct_details.path, 'METS.xml')
         schema_result = validator.validate_mets(mets_path)
+        mets_results_dict = validator.get_results_dict()
         # Now grab any errors
         schema_errors = validator.validation_errors
         if schema_result is True:
             profile.validate(mets_path)
             prof_results = profile.get_results()
+            prof_results_dict = profile.get_results_dict()
 
     prof_names=ValidationProfile.NAMES
     schematron_result=profile.is_valid
-    return struct_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results
+    return struct_dict, prof_results_dict, mets_results_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results
 
 
 def main():
