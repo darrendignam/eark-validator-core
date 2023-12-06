@@ -25,6 +25,8 @@
 """Module to capture everything schematron validation related."""
 from enum import Enum, unique
 import logging
+import json
+import dicttoxml
 
 import lxml.etree
 from lxml.isoschematron import Schematron
@@ -120,6 +122,24 @@ class ValidationProfile():
     def get_results(self):
         """Return the full set of results."""
         return self.results
+
+    def get_results_dict(self):
+        """Return the full set of results in a formatted dictionary."""
+        result_dict = {}
+        for key, value in self.NAMES.items():
+            warnings = []
+            for warning in self.results[key].warnings:
+                warnings.append({"rule_id": warning.rule_id, "message": warning.message, "severity": { "value": warning.severity.value ,"name": warning.severity.name } })
+            result_dict[key] = { "title": value, "is_valid": self.results[key].is_valid, "warnings": warnings }
+        return result_dict
+
+    def get_results_json(self):
+        """Return the full set of results in a formatted JSON string."""
+        return json.dumps( self.get_results_dict() )
+
+    def get_results_xml(self, root = True, custom_root = 'root', attr_type = True, cdata = False):
+        """Return the full set of results in a formatted XML string."""
+        return dicttoxml.dicttoxml(self.get_results_dict(), root = root, custom_root = custom_root, attr_type = attr_type, cdata = cdata, return_bytes=False)
 
     def get_result(self, name):
         """Return only the results for element name."""
