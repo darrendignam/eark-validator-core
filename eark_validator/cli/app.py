@@ -71,17 +71,16 @@ It is designed for simple integration into automated work-flows."""
             else:
                 click.echo(f"{file} is not a valid file.")
 
-def hardcopy_file(filename, extension, sha1_hash, data, verbose=False, format="xml"):
+def hardcopy_file(filename, extension, sha1_hash, data, verbose=False, format="json"):
     if verbose:
         click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
         click.echo("Working...")
     tmp_folder_name = sha1_hash
     create_directory(tmp_folder_name)
-    if format=='xml':
-        write_data_to_file_xml(data, os.path.join(tmp_folder_name, f'ip_validator.{filename}.xml'))
-    else:
+    if format=='json':
         write_data_to_file_json(data, os.path.join(tmp_folder_name, f'ip_validator.{filename}.json'))
-
+    else:
+        write_data_to_file_xml(data, os.path.join(tmp_folder_name, f'ip_validator.{filename}.xml'))
 
 def create_directory(directory_path):
     try:
