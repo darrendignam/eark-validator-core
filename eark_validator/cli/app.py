@@ -56,42 +56,31 @@ It is designed for simple integration into automated work-flows."""
                     validation_result["mets"] = mets_results_dict
 
                     if xml:
-                        click.echo( dicttoxml.dicttoxml(struct_dict, return_bytes=False) )
+                        click.echo( dicttoxml.dicttoxml(validation_result, return_bytes=False) )
+                        if hardcopy:
+                            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "xml")
                     elif json:
-                        click.echo( jsonformatter.dumps(struct_dict) )
-
-                    if hardcopy:
-                        # with open(file, 'rb') as f:
-                        #     sha1_hash = UTILS.sha1(file)
-                        click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
-                        click.echo("Working...")
-                        tmp_folder_name = sha1_hash
-                        create_directory(tmp_folder_name)
-                        metadata_file = open(os.path.join(tmp_folder_name, 'metadata.txt'), 'w')
-                        metadata_file.write(f"File name: {filename}\n")
-                        metadata_file.write(f"File path: {filepath} bytes\n")  
-                        metadata_file.write(f"File size: {filesize} bytes\n")                        
-
-                        # Write result data to disk
-                        write_data_to_file_json(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.json'))
-                        write_data_to_file_json(prof_results_dict, os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.json'))
-                        write_data_to_file_json(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.json'))
-                    
-                        write_data_to_file_xml(struct_dict, os.path.join(tmp_folder_name, f'structure_checks.{struct_details.structure_status.name}.xml'))
-                        write_data_to_file_xml(prof_results_dict, os.path.join(tmp_folder_name, f'schematron_validation.{schematron_result}.xml'))
-                        write_data_to_file_xml(schema_errors, os.path.join(tmp_folder_name, f'schema_validation.{schema_result}.xml'))
+                        click.echo( jsonformatter.dumps(validation_result) )
+                        if hardcopy:
+                            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "json")
+                    elif hardcopy:
+                        hardcopy_file(filename,extension,sha1_hash, validation_result, True, "xml")
                 
                 else:
                     click.echo(f"{file} has an invalid extension.")
             else:
                 click.echo(f"{file} is not a valid file.")
 
-def format_schema_results(schema_results):
-    result_dict = []
-    for error in schema_results:
-        result_dict.append({ "error": error.msg })
-    return result_dict
-
+def hardcopy_file(filename, extension, sha1_hash, data, verbose=False, format="xml"):
+    if verbose:
+        click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
+        click.echo("Working...")
+    tmp_folder_name = sha1_hash
+    create_directory(tmp_folder_name)
+    if format=='xml':
+        write_data_to_file_xml(data, os.path.join(tmp_folder_name, f'ip_validator.{filename}.xml'))
+    else:
+        write_data_to_file_json(data, os.path.join(tmp_folder_name, f'ip_validator.{filename}.json'))
 
 
 def create_directory(directory_path):
