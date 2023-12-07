@@ -64,7 +64,7 @@ It is designed for simple integration into automated work-flows."""
                         if hardcopy:
                             hardcopy_file(filename,extension,sha1_hash, validation_result, False, "json")
                     elif hardcopy:
-                        hardcopy_file(filename,extension,sha1_hash, validation_result, True, "xml")
+                        hardcopy_file(filename,extension,sha1_hash, validation_result, True, "json")
                 
                 else:
                     click.echo(f"{file} has an invalid extension.")
@@ -73,7 +73,7 @@ It is designed for simple integration into automated work-flows."""
 
 def hardcopy_file(filename, extension, sha1_hash, data, verbose=False, format="json"):
     if verbose:
-        click.echo(f"{file} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
+        click.echo(f"{filename} is a valid file with extension {extension} and SHA1: {sha1_hash} checksum.")
         click.echo("Working...")
     tmp_folder_name = sha1_hash
     create_directory(tmp_folder_name)
@@ -99,12 +99,12 @@ def write_data_to_file_json(data, file_path):
     with open(file_path, "w") as f:
         if isinstance(data, list):
             for item in data:
-                f.write(jsonformatter.dumps(item) + "\n")
+                f.write(jsonformatter.dumps(item, indent=2) + "\n")
         elif isinstance(data, dict):
-            f.write(jsonformatter.dumps(data) + "\n")
+            f.write(jsonformatter.dumps(data, indent=2) + "\n")
         elif isinstance(data, set):
             for item in data:
-                f.write(jsonformatter.dumps(item) + "\n")
+                f.write(jsonformatter.dumps(item, indent=2) + "\n")
         else:
             raise ValueError(f"Data must be a list, dictionary, or set {file_path}")
         
@@ -119,6 +119,7 @@ def validate(to_validate):
     schema_result = None
     prof_results = {}
     prof_results_dict = {}
+    mets_results_dict = {}
     schema_errors = []
     # Schematron validation profile
     profile = ValidationProfile()
