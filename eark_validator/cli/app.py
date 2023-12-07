@@ -22,54 +22,63 @@ ALLOWED_EXTENSIONS = {'zip', 'tar', 'gz', 'gzip'}
 @click.option("--json", default=True, help="Report results in JSON format")
 @click.option("--xml", default=False, help="Report results in XML format")
 @click.option("--hardcopy", default=False, help="Report results as files on the filesystem")
-@click.argument('files', nargs=-1)
+@click.argument('packages', nargs=-1)
 # @click.argument('file', type=click.Path(exists=True))
 @click.pass_context
-def cli(ctx, json, xml, hardcopy, files):
+def cli(ctx, json, xml, hardcopy, packages):
     """E-ARK Information Package validation (ip-check).
 ip-check is a command-line tool to analyse and validate the structure and
 metadata against the E-ARK Information Package specifications.
 It is designed for simple integration into automated work-flows."""
 
-    if len(files) == 0:
+    if len(packages) == 0:
         click.echo(click.get_current_context().get_help())
     else:
-        for file in files:
-            if os.path.isfile(file):
-                extension = os.path.splitext(file)[-1][1:].lower()
+        for package in packages:
+            if os.path.isfile(package):
+                extension = os.path.splitext(package)[-1][1:].lower()
                 if extension in ALLOWED_EXTENSIONS:
-                    # Create basic metadata
-                    filename = os.path.basename(file)
-                    filepath = os.path.dirname(file)
-                    filesize = os.path.getsize(file)
-                    sha1_hash = UTILS.sha1(file)
-
-                    validation_result = {}
-                    validation_result["metadata"] = { "filename":filename, "filepath":filepath, "filesize":filesize, "sha1":sha1_hash }
-
-                    # perform the validation
-                    struct_dict, prof_results_dict, mets_results_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(file)
-                    
-                    # Process Results
-                    validation_result["structure"] = struct_dict
-                    validation_result["profile"] = prof_results_dict
-                    validation_result["mets"] = mets_results_dict
-
-                    if xml:
-                        click.echo( dicttoxml.dicttoxml(validation_result, return_bytes=False) )
-                        if hardcopy:
-                            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "xml")
-                    elif json:
-                        click.echo( jsonformatter.dumps(validation_result) )
-                        if hardcopy:
-                            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "json")
-                    elif hardcopy:
-                        hardcopy_file(filename,extension,sha1_hash, validation_result, True, "json")
-                
+                    process_entity(package, extension, xml, json, hardcopy)
                 else:
-                    click.echo(f"{file} has an invalid extension.")
+                    click.echo(f"{package} has an invalid extension.")
+            elif os.path.isdir(package):
+                process_entity(package, "directory", xml, json, hardcopy)
             else:
-                click.echo(f"{file} is not a valid file.")
+                click.echo(f"{package} is not a valid file or folder.")
+
+def process_entity(entity, extension, xml, json, hardcopy):
+    # Create basic metadata
+    filename = os.path.basename(entity)
+    filepath = os.path.dirname(entity)
+    filesize = os.path.getsize(entity)
+
+    if extension=="directory":
+        sha1_hash = UTILS.sha1_directory(entity)
+    else:
+        sha1_hash = UTILS.sha1(entity)
+
+    validation_result = {}
+    validation_result["metadata"] = { "filename":filename, "filepath":filepath, "filesize":filesize, "sha1":sha1_hash }
+
+    # perform the validation
+    struct_dict, prof_results_dict, mets_results_dict, struct_details, schema_result, schema_errors, prof_names, schematron_result, prof_results = validate(entity)
+    
+    # Process Results
+    validation_result["structure"] = struct_dict
+    validation_result["profile"] = prof_results_dict
+    validation_result["mets"] = mets_results_dict
+
+    if xml:
+        click.echo( dicttoxml.dicttoxml(validation_result, return_bytes=False) )
+        if hardcopy:
+            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "xml")
+    elif json:
+        click.echo( jsonformatter.dumps(validation_result) )
+        if hardcopy:
+            hardcopy_file(filename,extension,sha1_hash, validation_result, False, "json")
+    elif hardcopy:
+        hardcopy_file(filename,extension,sha1_hash, validation_result, True, "json")
+
 
 def hardcopy_file(filename, extension, sha1_hash, data, verbose=False, format="json"):
     if verbose:

@@ -44,3 +44,31 @@ def sha1(path, blocksize=BLOCKSIZE):
             hasher.update(buf)
             buf = afile.read(blocksize)
     return hasher.hexdigest()
+
+def sha1_directory(directory_path, depth=3):
+    sha1 = hashlib.sha1()
+    # Initialize the current depth
+    current_depth = directory_path.count(os.sep)
+    for root, dirs, files in os.walk(directory_path):
+        # Calculate the depth of the current root
+        root_depth = root.count(os.sep)
+        if root_depth - current_depth < depth:
+            # Sort the file names to ensure consistent ordering
+            for filename in sorted(files):
+                filepath = os.path.join(root, filename)
+                # Check if it is a regular file and not a directory
+                if os.path.isfile(filepath):
+                    with open(filepath, 'rb') as f:
+                        while True:
+                            # Read file in chunks of 4096 bytes
+                            data = f.read(4096)
+                            if not data:
+                                break
+                            # Update the hash with the file content
+                            sha1.update(data)
+        else:
+            # Don't go beyond the specified depth
+            del dirs[:]
+
+    # Return the final sha1 hash of the directory
+    return sha1.hexdigest()
